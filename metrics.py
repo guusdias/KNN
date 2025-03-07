@@ -7,10 +7,8 @@ X = iris.data.features.to_numpy()  # Features (características)
 y = iris.data.targets.to_numpy().flatten()  # Labels (rótulos)
 
 # 2. Converter rótulos para inteiros (se forem strings)
-# Primeiro, verifique o tipo dos rótulos
 print("Tipo dos rótulos (y):", y.dtype)
 
-# Se os rótulos forem strings, converta-os para inteiros
 if y.dtype == 'O':  # 'O' significa objeto (geralmente strings)
     classes_unicas = np.unique(y)
     mapa_classes = {classe: idx for idx, classe in enumerate(classes_unicas)}
@@ -24,18 +22,19 @@ def distancia_euclidiana(a, b):
 def knn(X_train, y_train, X_test, k):
     predicoes = []
     for x in X_test:
-        # Calcula as distâncias entre o ponto de teste e todos os pontos de treino
         distancias = [distancia_euclidiana(x, x_train) for x_train in X_train]
-        # Encontra os k vizinhos mais próximos
         k_indices = np.argsort(distancias)[:k]
         k_labels = y_train[k_indices]
-        # Faz a previsão (moda dos k vizinhos)
         predicao = np.bincount(k_labels).argmax()
         predicoes.append(predicao)
     return np.array(predicoes)
 
 # 5. Dividir os dados em treino, validação e teste (holdout simples)
 def holdout_simples(X, y, train_size=0.7, val_size=0.15, test_size=0.15):
+    # Verificar se a soma dos tamanhos é igual a 1
+    if not np.isclose(train_size + val_size + test_size, 1.0):
+        raise ValueError("A soma de train_size, val_size e test_size deve ser igual a 1.")
+    
     # Embaralhar os dados
     indices = np.arange(len(X))
     np.random.shuffle(indices)
@@ -45,10 +44,11 @@ def holdout_simples(X, y, train_size=0.7, val_size=0.15, test_size=0.15):
     n = len(X)
     n_train = int(n * train_size)
     n_val = int(n * val_size)
+    n_test = int(n * test_size)
     
     # Dividir os dados
-    X_train, X_val, X_test = X[:n_train], X[n_train:n_train+n_val], X[n_train+n_val:]
-    y_train, y_val, y_test = y[:n_train], y[n_train:n_train+n_val], y[n_train+n_val:]
+    X_train, X_val, X_test = X[:n_train], X[n_train:n_train+n_val], X[n_train+n_val:n_train+n_val+n_test]
+    y_train, y_val, y_test = y[:n_train], y[n_train:n_train+n_val], y[n_train+n_val:n_train+n_val+n_test]
     
     return X_train, X_val, X_test, y_train, y_val, y_test
 
@@ -60,13 +60,10 @@ melhor_acuracia = 0
 melhor_k = 1
 
 for k in range(1, 10):  # Testando diferentes valores de k
-    # Fazendo previsões no conjunto de validação
     y_pred_val = knn(X_train, y_train, X_val, k)
-    # Calculando a acurácia
     acuracia = np.mean(y_pred_val == y_val)
     print(f"k = {k}, Acurácia na validação: {acuracia:.2f}")
     
-    # Verificando se é o melhor k
     if acuracia > melhor_acuracia:
         melhor_acuracia = acuracia
         melhor_k = k
